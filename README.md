@@ -1,92 +1,74 @@
-# 🚗 Er-Car Rentals
+# FASHION — E-Commerce Store
 
-A full-stack car rental platform built with **Next.js** and **MySQL**, supporting three separate user roles — **Customer**, **Owner**, and **Admin** — each with their own authentication, dashboard, and permissions.
+A full-stack fashion e-commerce storefront built with Next.js (App Router), Prisma, and PostgreSQL. Customers can browse products by category, register/sign in, check out with Cash on Delivery, and admins can manage products, orders, and customers from a dedicated dashboard.
 
----
+## Features
 
-## ✨ Features
+- **Storefront** — home page with hero, categories, new arrivals, and sale sections, plus dedicated Men / Women / Kids / Sale / New Arrivals pages
+- **Cart** — persistent shopping cart drawer available on every page
+- **Authentication** — email/password registration with OTP email verification, JWT session cookies, login/logout
+- **Checkout** — requires an account; Cash on Delivery payment, server-side stock and price validation
+- **Order confirmation emails** — sent via Brevo after an order is placed
+- **Admin dashboard** (`/admin`) — protected by an `isAdmin` flag on the account:
+  - Manage products (create, edit, delete)
+  - View and update order status (Pending → Processing → Shipped → Delivered / Cancelled)
+  - View registered customers
 
-- **Role-based authentication** for customers, owners, and admins, each with its own signed, httpOnly session cookie.
-- **Email verification via Brevo** — new customer and owner accounts must verify their email before they can sign in.
-- **Forgot / reset password** flow via email for all three roles.
-- **Car browsing & booking** — filter by category, make, price, etc., and rent a car (requires a signed-in, verified customer).
-- **Customer car ratings** — signed-in customers can rate cars they've viewed; the displayed rating is a live average across all customer reviews.
-- **Admin dashboard** — manage admins, owners, customers, and cars.
-- **Owner dashboard** — list and manage your own vehicles.
-- **Advertisement slots** — dedicated ad space on the homepage and car-listing sidebar.
-- **CSRF protection & security headers** applied globally via middleware.
+## Tech Stack
 
----
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 16 (App Router, Turbopack) |
+| Language | TypeScript |
+| Database | PostgreSQL |
+| ORM | Prisma 7 (with `@prisma/adapter-pg` driver adapter) |
+| Auth | JWT (`jsonwebtoken`) stored in an httpOnly cookie, passwords hashed with `bcryptjs` |
+| Email | Brevo (`@getbrevo/brevo` REST API SDK) |
+| Styling | Tailwind CSS |
+| Icons | lucide-react |
 
-## 🧱 Tech stack
+## Prerequisites
 
-| Layer      | Technology                          |
-|------------|--------------------------------------|
-| Framework  | Next.js 15 (App Router)             |
-| UI         | React, Ant Design, Tailwind CSS     |
-| Database   | MySQL                               |
-| Email      | Brevo (transactional email API)     |
-| Auth       | Custom signed session cookies (HMAC-SHA256) |
+- Node.js 18+
+- A PostgreSQL database (local install, Docker, or a hosted service like Supabase/Neon/Railway)
+- A free [Brevo](https://www.brevo.com) account and API key (for verification/order emails)
 
----
+## Getting Started
 
-## 🚀 Getting started
-
-### 1. Clone & install
+### 1. Install dependencies
 
 ```bash
-git clone <your-repo-url>
-cd <your-repo-folder>
 npm install
 ```
 
-### 2. Set up the database
+### 2. Configure environment variables
 
-Create a MySQL database (e.g. `er_car_rent`) and import your base schema first, then run the included migration to add the email verification / password reset columns:
+Create a `.env` file in the project root with:
+
+```env
+DATABASE_URL="postgresql://user:password@localhost:5432/ecommerce"
+BREVO_API_KEY="xkeysib-xxxxxxxxxxxxxxxxxxxxxxxxxx"
+BREVO_SENDER_EMAIL="you@yourdomain.com"
+JWT_SECRET="a-long-random-secret-string"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+```
+
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `BREVO_API_KEY` | API key from your Brevo account (Settings → SMTP & API → API Keys), used to send verification and order-confirmation emails |
+| `BREVO_SENDER_EMAIL` | The "from" address for outgoing emails — must be a verified sender in Brevo |
+| `JWT_SECRET` | Any long random string, used to sign session tokens |
+| `NEXT_PUBLIC_APP_URL` | Base URL of the app (used in email links) |
+
+> **Note on emails:** Brevo requires the sender address to be verified before it will send anything — add and verify it under **Senders & IP → Senders** in your Brevo dashboard. The free plan allows **300 emails/day**, which is plenty for development and small stores; if you outgrow it, upgrade your Brevo plan.
+
+### 3. Set up the database
 
 ```bash
-mysql -u root -p er_car_rent < migrations/002_add_email_verification_and_password_reset.sql
+npx prisma generate
+npx prisma migrate deploy
 ```
-
-> **No `mysql` CLI?** Open the file in phpMyAdmin's **SQL** tab (select your database first) and run it there instead. If your MySQL/MariaDB version is older and complains about `IF NOT EXISTS` on `ADD COLUMN`, remove those two words from each line and re-run — it's safe as long as you only run it once.
-
-This adds `email_verified`, `verification_token_hash`, `verification_expires`, `reset_token_hash`, and `reset_expires` to the `customer` and `owner` tables (plus reset columns on `admin`), and marks any pre-existing accounts as already verified so nobody gets locked out retroactively.
-
-### 3. Configure environment variables
-
-```bash
-cp .env.example .env.local
-```
-
-Then fill in `.env.local`:
-
-```dotenv
-# MySQL connection
-DB_HOST=localhost
-DB_USER=root
-DB_PASS=
-DB_SCHEMA=er_car_rent
-
-# Signs session cookies — required in production.
-# Generate one with:
-#   openssl rand -hex 32
-# or, if you don't have openssl (e.g. on Windows PowerShell):
-#   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-SESSION_SECRET=
-
-# Used to build links in verification/reset emails
-APP_BASE_URL=http://localhost:3000
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-
-# Brevo (https://app.brevo.com) — required to actually deliver emails.
-# Get a key from Settings → SMTP & API → API Keys.
-# SENDER_EMAIL must be verified under Settings → Senders in Brevo.
-BREVO_API_KEY=
-SENDER_EMAIL=
-SENDER_NAME="Er-Car Rentals"
-```
-
-> **No Brevo key yet?** The app still works — verification/reset emails are printed to your terminal instead of sent, so you can copy the link from there manually during development.
 
 ### 4. Run the dev server
 
@@ -94,68 +76,68 @@ SENDER_NAME="Er-Car Rentals"
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Visit [http://localhost:3000](http://localhost:3000).
 
-### 5. Build for production
+## Creating an Admin Account
 
-```bash
-npm run build
-npm start
+There's no self-service way to become an admin (by design). Register a normal account through the site, then promote it manually:
+
+```sql
+UPDATE "Customer" SET "isAdmin" = true WHERE email = 'you@example.com';
 ```
 
----
+Log out and back in so your session picks up the change, then visit `/admin`.
 
-## 🔑 Roles & auth
-
-| Role     | Sign-up flow                          | Email verification required? |
-|----------|----------------------------------------|-------------------------------|
-| Customer | Self-registration                     | ✅ Yes                        |
-| Owner    | Self-registration                     | ✅ Yes                        |
-| Admin    | Created directly (no public sign-up)  | ❌ No                         |
-
-Each role gets its own cookie: `admin_session`, `owner_session`, `customer_session`. See `src/app/libs/session.js` and `src/app/libs/authGuard.js` for how tokens are signed and verified, and `src/middleware.js` for route protection (e.g. `/admin/**` requires a valid `admin_session`).
-
-Useful endpoints:
-- `GET /api/auth/check` — check whether the current request is authenticated (optionally `?role=admin|owner|customer`).
-- `POST /api/auth/logout` — clear the session cookie.
-- `GET /api/health` — returns `{status: "ok"}` if the app can reach the database (handy for uptime checks / deploy platforms).
-
----
-
-## 📁 Project structure
+## Project Structure
 
 ```
-src/
-  app/
-    api/            REST-style route handlers, one folder per resource
-    libs/
-      mysql.js       MySQL connection pool
-      session.js      Session cookie signing/verification
-      authGuard.js     requireRole() / getAnySession() helpers
-      mailer.js        Brevo email sending
-      accountAuth.js   Verification/reset token generation
-      rateLimit.js     Basic in-memory rate limiting
-    components/      Shared React components (header, login drawer, ad space, etc.)
-    admin/           Admin dashboard pages
-    EconomicCar/      Main car browsing & booking page
-  middleware.js       Global security headers, CSRF check, admin route guard
-migrations/           SQL migrations (run manually, see setup above)
+app/
+├── admin/                 # Admin dashboard (products, orders, customers)
+├── checkout/              # Checkout page (Cash on Delivery)
+├── menProduct/            # Men's category page
+├── womenProduct/          # Women's category page
+├── kidsProduct/           # Kids' category page
+├── sale/                  # Sale category page
+├── newArrival/            # New arrivals page
+├── api/
+│   ├── auth/              # register, login, logout, verify-otp, me
+│   ├── products/          # product CRUD (admin-protected writes)
+│   ├── orders/            # order creation + admin order management
+│   └── customers/         # admin customer list
+├── components/
+│   ├── context/           # CartContext, AuthContext
+│   ├── navbar.tsx, footer.tsx, cart-drawer.tsx, login.tsx
+│   └── ...section components (hero, category grid, product grid, etc.)
+└── lib/
+    ├── prisma.ts          # Prisma client (with PostgreSQL driver adapter)
+    ├── auth.ts             # JWT session helpers
+    └── brevo.ts            # Email sending (verification + order confirmation) via Brevo
+
+prisma/
+├── schema.prisma          # Data model
+└── migrations/            # SQL migration history
 ```
 
----
+> If your Brevo integration lives in a different file than `app/lib/brevo.ts`, adjust the path above to match your project.
 
-## ⚠️ Troubleshooting
+## Data Model
 
-- **Admin login redirects back to the homepage** — make sure you've pulled the latest `src/middleware.js`; older versions checked the wrong cookie name.
-- **Login returns `403 EMAIL_NOT_VERIFIED`** — the account hasn't clicked its verification link yet. Check your terminal for the printed link (if Brevo isn't configured) or your inbox (if it is), or manually run:
-  ```sql
-  UPDATE customer SET email_verified = 1 WHERE email = 'someone@example.com';
-  ```
-- **`Unknown column 'email_verified'`** — you haven't run the migration yet; see step 2 above.
-- **No email arrives even with a Brevo key set** — confirm `SENDER_EMAIL` is a *verified* sender in your Brevo account (Settings → Senders), and check the terminal for a `[mailer] Brevo send failed` error with details.
+- **Product** — name, category, price, stock, image, badge
+- **Customer** — name, email, password (hashed), email verification (OTP), `isAdmin` flag
+- **Order** — linked to a customer, status, total, payment method, shipping details
+- **OrderItem** — line items linking an order to products with quantity/price
 
----
+## Authentication Flow
 
-## 📄 License
+1. Customer registers → an OTP is emailed via Brevo and stored (with expiry) on the account
+2. Customer verifies the OTP → account marked verified, session cookie issued (auto-login)
+3. Subsequent visits use `POST /api/auth/login` to sign in, which issues the same JWT session cookie
+4. `GET /api/auth/me` lets the client check the current session; `POST /api/auth/logout` clears it
+5. Checkout and all admin routes check this session server-side — the API enforces access control, not just the UI
 
-Add your license of choice here (MIT, etc.).
+## Known Limitations / Next Steps
+
+- Only Cash on Delivery is supported; no online payment gateway is integrated yet
+- No password-reset flow
+- No pagination on admin product/order/customer lists
+- No automated tests
