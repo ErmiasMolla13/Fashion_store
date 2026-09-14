@@ -1,0 +1,88 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Category {
+  men
+  women
+  kids
+  accessories
+}
+
+enum Badge {
+  New
+  Sale
+  None
+}
+
+enum OrderStatus {
+  Pending
+  Processing
+  Shipped
+  Delivered
+  Cancelled
+}
+
+enum PaymentMethod {
+  CashOnDelivery
+}
+
+model Product {
+  id        Int      @id @default(autoincrement())
+  name      String
+  category  Category
+  price     Decimal  @db.Decimal(10, 2)
+  stock     Int      @default(0)
+  image     String
+  badge     Badge    @default(None)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orderItems OrderItem[]
+}
+
+model Customer {
+  id            Int       @id @default(autoincrement())
+  name          String
+  email         String    @unique
+  password      String
+  emailVerified Boolean   @default(false) // Tracks if verified
+  otp           String?                   // Stores the temporary OTP code
+  otpExpires    DateTime?                 // Stores the OTP expiration time
+  isAdmin       Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+
+  orders Order[]
+}
+
+model Order {
+  id         Int         @id @default(autoincrement())
+  customer   Customer    @relation(fields: [customerId], references: [id])
+  customerId Int
+  status     OrderStatus @default(Pending)
+  total      Decimal     @db.Decimal(10, 2)
+
+  paymentMethod   PaymentMethod @default(CashOnDelivery)
+  shippingName    String
+  shippingPhone   String
+  shippingAddress String
+
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  orderItems OrderItem[]
+}
+
+model OrderItem {
+  id        Int     @id @default(autoincrement())
+  order     Order   @relation(fields: [orderId], references: [id])
+  orderId   Int
+  product   Product @relation(fields: [productId], references: [id])
+  productId Int
+  quantity  Int
+  price     Decimal @db.Decimal(10, 2)
+}
